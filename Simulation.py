@@ -17,6 +17,10 @@ class Link:
         self.cm = np.matrix((pos[0]+length,pos[1]+length))
         self.inertia = self.mass*self.length**2/3
         self.angle = angle
+        self.rotation_matrix = self.get_rotation_matrix()
+
+    def get_rotation_matrix(self):
+        return np.matrix([[np.cos(self.angle), -np.sin(self.angle)],[np.sin(self.angle),np.cos(self.angle)]])
 
 
 class Joint:
@@ -24,8 +28,11 @@ class Joint:
         self.id = id
         self.left = left
         self.right = right
-        self.torque = angle
+        self.angle = self.calc_angle()
         self.pos = np.matrix(pos)
+
+    def calc_angle(self):
+        self.angle = self.left.angle-self.right.angle
 
 
 class Snake:
@@ -72,17 +79,23 @@ class Snake:
     def sign(self, mat):
         return np.sign(mat)
 
-    #takes in a 1 x N matrix
+    #takes in a 1 x N matrix returns N x N diagonal matrix
     def diag(self, mat):
         return np.matrix([[mat.item(i) if j==i else 0 for j in range(np.shape(mat)[1])] for i in range(np.shape(mat)[1])])
 
+    def t_inverse(self):
+        return np.matrix([self.D.T*(self.D*self.D.T).I,self.e])
+
+    def update_X(self):
+        ""
+
 l = Link(0,None,None,5,10)
-print(l.cm.item(1))
+print(l)
 s = Snake(4)
 for i in range(4):
     s.links.append(Link(i,None,None,5,10,(10*i +5 ,0)))
 print(s.heading(),s.get_velocity())
-print(s.diag(s.e))
+print(s.t_inverse())
 
 '''
 snake = Snake().make_random(3)
