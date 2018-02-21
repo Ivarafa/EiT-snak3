@@ -8,7 +8,7 @@ servo_slew = 2
 link_length = 40
 link_mass = 5
 f_fric = 0.1
-c_fric = 1.0
+c_fric = 5.0
 
 def sat(low,x,high):
     if(x<low):
@@ -34,14 +34,14 @@ class Link:
         disp = np.matrix([[link_length*np.cos(self.angle)],[link_length*np.sin(self.angle)]])
         return disp
 class Snake:
-    def __init__(self, size, joints = [], links=[], linkmass=0.5,  pos=(0,0)):
+    def __init__(self, size, joints = [], links=[], linkmass=0.5,  pos=(0.0,300.0)):
         self.joints = joints
         self.size = size
         self.links = links
         self.velocity = np.matrix([[1.0],[0.0]])
         self.timeatstart = time.time()
         self.lastmovetime = time.time()
-        self.pos = np.matrix(pos)
+        self.pos = np.matrix(pos).T
         self.linkmass = linkmass
         self.e = np.matrix([1 for i in range(size)]).T
         self.phi = 0
@@ -67,6 +67,7 @@ class Snake:
             self.links[i].angle = angle
         XY_dot = self.big_XY_dot()
         self.velocity += (t-self.lastmovetime)*self.friction()/float(self.linkmass*self.size)
+        self.pos += self.velocity*(t-self.lastmovetime)
         self.lastmovetime = t
     def heading(self):
         return sum([x.angle for x in self.links])/len(self.links)
@@ -78,6 +79,8 @@ class Snake:
             link_start += self.links[i].get_displacement()
         cm = cm/(self.linkmass*self.size)
         return cm
+    def get_pos(self):
+        return self.pos
     def get_speed(self):
         return np.linalg.norm(self.velocity)**(1/2)
     def diag(self, mat):
