@@ -7,6 +7,8 @@ import time
 servo_slew = 2
 link_length = 40
 link_mass = 5
+f_fric = 0.1
+c_fric = 1.0
 
 def sat(low,x,high):
     if(x<low):
@@ -36,7 +38,7 @@ class Snake:
         self.joints = joints
         self.size = size
         self.links = links
-        self.velocity = np.matrix([[0],[0]])
+        self.velocity = np.matrix([[1.0],[0.0]])
         self.timeatstart = time.time()
         self.lastmovetime = time.time()
         self.pos = np.matrix(pos)
@@ -57,13 +59,14 @@ class Snake:
     def move(self):
         t = time.time()
         self.phi += (t - self.lastmovetime)*self.get_speed()
-        self.velocity = np.matrix([[sat(1,(t-self.timeatstart)**(1/2),10)],[0]])
-        print(self.big_XY_dot())
+        ZF = 0
         for i in range(0,self.size):
             angle =  servo_slew/self.get_speed()*np.cos(self.phi + i)
             angle = sat(-1.57,angle,1.57)
             self.links[i].angle_dot = (angle - self.links[i].angle)/(t-self.lastmovetime)
             self.links[i].angle = angle
+        XY_dot = self.big_XY_dot()
+        self.velocity += (t-self.lastmovetime)*self.friction()/float(self.linkmass*self.size)
         self.lastmovetime = t
     def heading(self):
         return sum([x.angle for x in self.links])/len(self.links)
@@ -112,3 +115,15 @@ class Snake:
         X = link_length/2*np.transpose(self.K)*stheta*theta_dot + self.e*self.velocity[0]
         Y = -link_length/2*np.transpose(self.K)*ctheta*theta_dot + self.e*self.velocity[1]
         return np.stack((np.transpose(X),np.transpose(Y)))
+    def friction(self):
+        ZF = np.matrix([[0.0],[0.0]])
+        XY_dot = self.big_XY_dot()
+        for i in range(self.size):
+            cos = np.cos(self.links[i].angle)
+            sin = np.sin(self.links[i].angle)
+            f_der = cos*XY_dot[0,i] - sin*XY_dot[1,i]
+            c_der = sin*XY_dot[0,i] + cos*XY_dot[1,i]
+            #Coloumb friction
+            ZF += np.matrix([[cos*f_fric*np.sign(f_der) + sin*c_fric*np.sign(c_der)],[- sin*f_fric*np.sign(f_der) + cos*c_fric*np.sign(c_der)]])
+        return ZF
+
