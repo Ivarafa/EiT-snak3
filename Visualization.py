@@ -29,9 +29,10 @@ while not done:
     start_pos = np.matrix([[300],[300]]) - snake.get_cm()
     pygame.draw.circle(screen,(255,0,0,255),start_pos,2)
     XY = snake.big_XY()
+    XY_dot = snake.big_XY_dot()
     for i in range(0, snake.get_size()):
         stop_pos = np.matrix([[XY[0,i]],[XY[1,i]]]) - snake.get_cm() + np.matrix([[300],[300]])
-        #pygame.draw.line(screen, (0,0,255,255),start_pos,stop_pos,2)
+        pygame.draw.line(screen, (0,255,0,255),stop_pos,stop_pos + np.matrix([[XY_dot[0,i]],[XY_dot[1,i]]]),2)
         pygame.draw.circle(screen,(0,0,255,255),stop_pos,2)
         start_pos = stop_pos
     pygame.display.flip()

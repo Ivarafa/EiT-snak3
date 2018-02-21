@@ -18,12 +18,13 @@ def sat(low,x,high):
 
 
 class Link:
-    def __init__(self, id, length, mass, angle=0):
+    def __init__(self, id, length, mass, angle=0, angle_dot = 0):
         self.id = id
         self.length = length
         self.mass = mass
         self.inertia = self.mass*self.length**2/3
         self.angle = angle
+        self.angle_dot = 0
     def get_T_matrix(self):
         T_matrix = np.matrix([[np.cos(self.angle), -np.sin(self.angle), link_length*np.cos(self.angle)], [np.sin(self.angle), np.cos(self.angle), link_length*np.sin(self.angle)], [0, 0, 1]])
         return T_matrix
@@ -35,7 +36,7 @@ class Snake:
         self.joints = joints
         self.size = size
         self.links = links
-        self.speed = 0
+        self.velocity = np.matrix([[0],[0]])
         self.timeatstart = time.time()
         self.lastmovetime = time.time()
         self.pos = np.matrix(pos)
@@ -55,11 +56,15 @@ class Snake:
         return self.size
     def move(self):
         t = time.time()
-        self.phi += (t - self.lastmovetime)*self.speed
-        self.lastmovetime = t
-        self.speed = (t-self.timeatstart)**(1/2)
+        self.phi += (t - self.lastmovetime)*self.get_speed()
+        self.velocity = np.matrix([[sat(1,(t-self.timeatstart)**(1/2),10)],[0]])
+        print(self.big_XY_dot())
         for i in range(0,self.size):
-            self.links[i].angle =  servo_slew/sat(servo_slew,self.speed,10)*np.cos(self.phi + i)
+            angle =  servo_slew/self.get_speed()*np.cos(self.phi + i)
+            angle = sat(-1.57,angle,1.57)
+            self.links[i].angle_dot = (angle - self.links[i].angle)/(t-self.lastmovetime)
+            self.links[i].angle = angle
+        self.lastmovetime = t
     def heading(self):
         return sum([x.angle for x in self.links])/len(self.links)
     def get_cm(self):
@@ -70,8 +75,8 @@ class Snake:
             link_start += self.links[i].get_displacement()
         cm = cm/(self.linkmass*self.size)
         return cm
-    def get_velocity(self):
-        return np.matrix([np.cos(self.heading()),np.sin(self.heading())])*self.get_cm().T
+    def get_speed(self):
+        return np.linalg.norm(self.velocity)**(1/2)
     def diag(self, mat):
         return np.matrix([[mat.item(i) if j==i else 0 for j in range(np.shape(mat)[1])] for i in range(np.shape(mat)[1])])
     def big_XY(self):
@@ -88,4 +93,22 @@ class Snake:
         ctheta = np.transpose(np.matrix(ctheta))
         X = -link_length/2*np.transpose(self.K)*ctheta + self.e*self.get_cm()[0]
         Y = -link_length/2*np.transpose(self.K)*stheta + self.e*self.get_cm()[1]
+        return np.stack((np.transpose(X),np.transpose(Y)))
+    def big_XY_dot(self):
+        theta = []
+        theta_dot = []
+        stheta = []
+        ctheta = []
+        for i in range(0, self.size):
+            th = self.links[i].angle
+            theta.append(th)
+            theta_dot.append(self.links[i].angle_dot)
+            stheta.append(np.sin(th))
+            ctheta.append(np.cos(th))
+        theta = self.diag(np.matrix(theta))
+        theta_dot = np.transpose(np.matrix(theta_dot))
+        stheta = self.diag(np.matrix(stheta))
+        ctheta = self.diag(np.matrix(ctheta))
+        X = link_length/2*np.transpose(self.K)*stheta*theta_dot + self.e*self.velocity[0]
+        Y = -link_length/2*np.transpose(self.K)*ctheta*theta_dot + self.e*self.velocity[1]
         return np.stack((np.transpose(X),np.transpose(Y)))
