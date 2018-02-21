@@ -18,10 +18,8 @@ def sat(low,x,high):
 
 
 class Link:
-    def __init__(self, id, parent, child, length, mass, angle=0):
+    def __init__(self, id, length, mass, angle=0):
         self.id = id
-        self.parent = parent
-        self.child = child
         self.length = length
         self.mass = mass
         self.inertia = self.mass*self.length**2/3
@@ -44,13 +42,14 @@ class Snake:
         self.linkmass = linkmass
         self.e = np.matrix([1 for i in range(size)]).T
         self.phi = 0
-    def make(self,size):
-        prev_link = Link(0,None,None, link_length, link_mass)
-        self.links.append(prev_link)
-        for i in range(1,size):
-            link = Link(i,prev_link,None, link_length, link_mass)
+        self.e = np.matrix([1 for i in range(size)]).T
+        self.A = np.matrix([[1 if j==i or j==i+1 else 0 for j in range(size)]for i in range(size-1)])
+        self.D = np.matrix([[1 if j==i else -1 if j==i+1 else 0 for j in range(size)]for i in range(size-1)])
+        self.K = np.transpose(self.A)*np.linalg.inv(self.D*np.transpose(self.D))*self.D
+    def make(self):
+        for i in range(0 ,self.size):
+            link = Link(i,link_length, link_mass)
             self.links.append(link)
-            prev_link = link
         return self
     def get_size(self):
         return self.size
@@ -60,7 +59,6 @@ class Snake:
         self.lastmovetime = t
         self.speed = (t-self.timeatstart)**(1/2)
         for i in range(0,self.size):
-            print(self.speed)
             self.links[i].angle =  servo_slew/sat(servo_slew,self.speed,10)*np.cos(self.phi + i)
     def heading(self):
         return sum([x.angle for x in self.links])/len(self.links)
@@ -74,3 +72,20 @@ class Snake:
         return cm
     def get_velocity(self):
         return np.matrix([np.cos(self.heading()),np.sin(self.heading())])*self.get_cm().T
+    def diag(self, mat):
+        return np.matrix([[mat.item(i) if j==i else 0 for j in range(np.shape(mat)[1])] for i in range(np.shape(mat)[1])])
+    def big_XY(self):
+        theta = []
+        stheta = []
+        ctheta = []
+        for i in range(0, self.size):
+            th = self.links[i].angle
+            theta.append(th)
+            stheta.append(np.sin(th))
+            ctheta.append(np.cos(th))
+        theta = np.transpose(np.matrix(theta))
+        stheta = np.transpose(np.matrix(stheta))
+        ctheta = np.transpose(np.matrix(ctheta))
+        X = -link_length/2*np.transpose(self.K)*ctheta + self.e*self.get_cm()[0]
+        Y = -link_length/2*np.transpose(self.K)*stheta + self.e*self.get_cm()[1]
+        return np.stack((np.transpose(X),np.transpose(Y)))
