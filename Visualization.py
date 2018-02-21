@@ -8,7 +8,7 @@ done = False
 size = width, height = 600, 600
 screen = pygame.display.set_mode(size)
 background = [0,0,0]
-snake = Simulation2.Snake(7).make(7)  #fix this to make proper snake
+snake = Simulation.Snake(7).make(7)  #fix this to make proper snake
 
 while not done:
     for event in pygame.event.get():
