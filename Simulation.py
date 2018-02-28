@@ -8,7 +8,7 @@ servo_slew = 2
 link_length = 40
 link_mass = 5
 f_fric = 0.1
-c_fric = 5.0
+c_fric = 100.0
 
 def sat(low,x,high):
     if(x<low):
@@ -61,8 +61,7 @@ class Snake:
         self.phi += (t - self.lastmovetime)*self.get_speed()
         ZF = 0
         for i in range(0,self.size):
-            angle =  servo_slew/self.get_speed()*np.cos(self.phi + i)
-            angle = sat(-1.57,angle,1.57)
+            angle =  servo_slew/sat(servo_slew/1.68, self.get_speed(),100*servo_slew/1.68)*np.cos(self.phi + i)
             self.links[i].angle_dot = (angle - self.links[i].angle)/(t-self.lastmovetime)
             self.links[i].angle = angle
         XY_dot = self.big_XY_dot()
@@ -124,9 +123,9 @@ class Snake:
         for i in range(self.size):
             cos = np.cos(self.links[i].angle)
             sin = np.sin(self.links[i].angle)
-            f_der = cos*XY_dot[0,i] - sin*XY_dot[1,i]
-            c_der = sin*XY_dot[0,i] + cos*XY_dot[1,i]
+            f_der = cos*XY_dot[0,i] + sin*XY_dot[1,i]
+            c_der = -sin*XY_dot[0,i] + cos*XY_dot[1,i]
             #Coloumb friction
-            ZF += np.matrix([[cos*f_fric*np.sign(f_der) + sin*c_fric*np.sign(c_der)],[- sin*f_fric*np.sign(f_der) + cos*c_fric*np.sign(c_der)]])
+            ZF -= np.matrix([[cos*f_fric*np.sign(f_der) - sin*c_fric*np.sign(c_der)],[ sin*f_fric*np.sign(f_der) + cos*c_fric*np.sign(c_der)]])
         return ZF
 
