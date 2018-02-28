@@ -5,9 +5,10 @@ import sys, pygame, Simulation
 import numpy as np
 pygame.init()
 done = False
-size = width, height = 1500, 600
+size = width, height = 1500, 1000
 screen = pygame.display.set_mode(size)
 background = [0,0,0]
+draw_der = False
 snake = Simulation.Snake(7).make()  #fix this to make proper snake
 while not done:
     for event in pygame.event.get():
@@ -33,7 +34,7 @@ while not done:
         XY_dot = snake.big_XY_dot()
         for i in range(0, snake.get_size()):
             stop_pos = np.matrix([[XY[0,i]],[XY[1,i]]]) - snake.get_cm() + snake.get_pos()
-            pygame.draw.line(screen, (0,255,0,255),stop_pos,stop_pos + np.matrix([[XY_dot[0,i]],[XY_dot[1,i]]]),2)
+            if(draw_der): pygame.draw.line(screen, (0,255,0,255),stop_pos,stop_pos + np.matrix([[XY_dot[0,i]],[XY_dot[1,i]]]),2)
             pygame.draw.circle(screen,(0,0,255,255),stop_pos,2)
             start_pos = stop_pos
         pygame.display.flip()
