@@ -2,13 +2,14 @@ __author__ = 'Ivar A. Fauske'
 # This Python file uses the following encoding: utf-8
 import random
 import numpy as np
+import pygame
 import time
 
 servo_slew = 2
 link_length = 40
 link_mass = 5
-f_fric = 0.1
-c_fric = 5.0
+f_fric = 2.0
+c_fric = 20.0
 
 def sat(low,x,high):
     if(x<low):
@@ -34,16 +35,15 @@ class Link:
         disp = np.matrix([[link_length*np.cos(self.angle)],[link_length*np.sin(self.angle)]])
         return disp
 class Snake:
-    def __init__(self, size, joints = [], links=[], linkmass=0.5,  pos=(0.0,300.0)):
-        self.joints = joints
+    def __init__(self, size, links=[], linkmass=0.5,  pos=(0.0,300.0)):
         self.size = size
         self.links = links
         self.velocity = np.matrix([[1.0],[0.0]])
         self.timeatstart = time.time()
         self.lastmovetime = time.time()
         self.pos = np.matrix(pos).T
+        self.turnangle = 0
         self.linkmass = linkmass
-        self.e = np.matrix([1 for i in range(size)]).T
         self.phi = 0
         self.e = np.matrix([1 for i in range(size)]).T
         self.A = np.matrix([[1 if j==i or j==i+1 else 0 for j in range(size)]for i in range(size-1)])
@@ -58,16 +58,23 @@ class Snake:
         return self.size
     def move(self):
         t = time.time()
-        self.phi += (t - self.lastmovetime)*self.get_speed()
+        self.phi +=  (t - self.lastmovetime)*self.get_speed()/2
         ZF = 0
+        if(pygame.key.get_pressed()[pygame.K_UP]):
+            self.turnangle = sat(self.turnangle-(t - self.lastmovetime)*0.4, 100, self.turnangle+(t - self.lastmovetime)*0.4 )
+        elif(pygame.key.get_pressed()[pygame.K_DOWN]):
+            self.turnangle = sat(self.turnangle-(t - self.lastmovetime)*0.4, -100, self.turnangle+(t - self.lastmovetime)*0.4 )
+        #else:
+        #    self.turnangle = sat(self.turnangle-(t - self.lastmovetime)*0.2, 0 , self.turnangle+(t - self.lastmovetime)*0.2 )
+        print(self.turnangle)
         for i in range(0,self.size):
-            angle =  servo_slew/self.get_speed()*np.cos(self.phi + i)
-            angle = sat(-1.57,angle,1.57)
+            angle =  self.turnangle + 2*servo_slew/sat(2*servo_slew/1.68, self.get_speed(),100*servo_slew/1.68)*np.cos(self.phi + i)
             self.links[i].angle_dot = (angle - self.links[i].angle)/(t-self.lastmovetime)
             self.links[i].angle = angle
         XY_dot = self.big_XY_dot()
         self.velocity += (t-self.lastmovetime)*self.friction()/float(self.linkmass*self.size)
         self.pos += self.velocity*(t-self.lastmovetime)
+        self.pos = np.matrix([[self.pos[0,0]%1500],[self.pos[1,0]]])
         self.lastmovetime = t
     def heading(self):
         return sum([x.angle for x in self.links])/len(self.links)
@@ -124,9 +131,9 @@ class Snake:
         for i in range(self.size):
             cos = np.cos(self.links[i].angle)
             sin = np.sin(self.links[i].angle)
-            f_der = cos*XY_dot[0,i] - sin*XY_dot[1,i]
-            c_der = sin*XY_dot[0,i] + cos*XY_dot[1,i]
+            f_der = cos*XY_dot[0,i] + sin*XY_dot[1,i]
+            c_der = -sin*XY_dot[0,i] + cos*XY_dot[1,i]
             #Coloumb friction
-            ZF += np.matrix([[cos*f_fric*np.sign(f_der) + sin*c_fric*np.sign(c_der)],[- sin*f_fric*np.sign(f_der) + cos*c_fric*np.sign(c_der)]])
+            ZF -= np.matrix([[cos*f_fric*np.sign(f_der) - sin*c_fric*np.sign(c_der)],[ sin*f_fric*np.sign(f_der) + cos*c_fric*np.sign(c_der)]])
         return ZF
 
