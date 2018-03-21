@@ -15,7 +15,7 @@ GPIO.setwarnings(False)
 servos = []
 
 
-def conncet(num):
+def connect(num):
     for i in range(num):
         myservo = getNextPin()
         GPIO.setup(myservo,GPIO.OUT)
