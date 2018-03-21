@@ -17,4 +17,4 @@ class Sensor:
 
     #TODO: update or omit whether or not processing of the sensor value is needed
     def formatted(self,value):
-        return self.value
+        return value

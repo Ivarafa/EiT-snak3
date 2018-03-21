@@ -1,7 +1,6 @@
 # This Python file uses the following encoding: utf-8
 
 import ASUS.GPIO as GPIO
-import time
 
 #Constants
 #TODO: Fill inn the pin numbers used
@@ -26,6 +25,7 @@ def connect(num):
 def shutDown():
     GPIO.cleanup()
 
+#This thing may be super silly
 def getNextPin():
     global pins
     return pins.pop()
