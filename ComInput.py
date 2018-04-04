@@ -18,3 +18,10 @@ class Connection:
     def informUser(self, message):
         ""
 
+    #TODO: Code to close a connection
+    def close(self):
+        ""
+
+    #TODO: possible other way of doing this class (instead of informUser)
+    def getValue(self):
+        return ""

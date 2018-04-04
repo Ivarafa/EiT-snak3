@@ -9,6 +9,6 @@ class DecisionMaker:
     def updateKnowledge(self):
         raise NotImplementedError
 
-    def getDecision(self):
+    def getDecision(self, **kwargs):
         raise NotImplementedError
 
