@@ -15,7 +15,7 @@ class RobotProgram:
         self.coms = self.setUpComs()
         self.sensors = self.setUpSensors()
         self.motors = self.setUpMotors()
-        self.decision_maker = DecisionMaker.DecisionMaker()     #Replace with actual decision maker
+        self.decision_maker = DecisionMaker.SimpleDecisionMaker()     #Replace with actual decision maker
 
         #The following variable is maybe better replaced by a list of joint angles
         self.snake = [0]*num_of_links       #init snake as fully stretched along x-axis
@@ -43,7 +43,8 @@ class RobotProgram:
                     self.knowledge['sen{0}'.format(i)] = self.sensors[i].getValue()
                 for i in range(len(self.coms)):
                     self.knowledge['com{0}'.format(i)] = self.coms[i].getValue()       #may want to do this another way
-                angles = self.decision_maker.getDecision(**self.knowledge)
+                angles = self.decision_maker.getDecision(self.snake, **self.knowledge)
+                print(angles)
                 for i in range(len(self.motors)):
                     self.motors[i].setAngle(angles[i])              #This function is not supported in motorInterface
         except:
