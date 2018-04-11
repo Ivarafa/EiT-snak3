@@ -8,7 +8,7 @@ import sys
 
 class RobotProgram:
 
-    def __init__(self, num_of_links=7):
+    def __init__(self, num_of_links=7, *args):
         #Type fixing
         num_of_links = int(num_of_links)
 
@@ -58,6 +58,8 @@ class RobotProgram:
         #The following loop must be updated acording to update of motorInterface
         for motor in self.motors:
             motor.shutDown()
+
+
 
 if __name__ == '__main__':
     print(sys.argv[1:])
