@@ -1,20 +1,15 @@
 __author__ = 'Ivar A. Fauske'
 # This Python file uses the following encoding: utf-8
 
-import sys
-
-import pygame
-
-import Simulation
-
+import sys, pygame, Simulation
+import numpy as np
 pygame.init()
 done = False
-size = width, height = 600, 600
+size = width, height = 1500, 1000
 screen = pygame.display.set_mode(size)
 background = [0,0,0]
-
-snake = Simulation.Snake().make_random(9)  #fix this to make proper snake
-
+draw_der = False
+snake = Simulation.Snake(7).make()  #fix this to make proper snake
 while not done:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -22,20 +17,28 @@ while not done:
             done = True
 
     snake.move()    #here to update snake
-    #c = [(x+1)%256 for x in c]
-    screen.fill(background)
-    for i in range(snake.get_size()-1):
-        surf = pygame.Surface((10,10),flags=pygame.SRCALPHA)
-        surf.fill((255,0,0,255))
-        surf = pygame.transform.rotate(surf,snake.joints[i].rotation)
-        screen.blit(surf,(snake.joints[i].pos[0],snake.joints[i].pos[1]))
-        pygame.draw.circle(screen,[255,0,0],(snake.links[i].pos[0],snake.links[i].pos[1]),2)
-    surf = pygame.Surface((10,10),flags=pygame.SRCALPHA)
-    surf.fill((255,0,0,255))
-    surf = pygame.transform.rotate(surf,snake.joints[-1].rotation)
-    screen.blit(surf,(snake.joints[-1].pos[0],snake.joints[-1].pos[1]))
-
-    pygame.display.flip()
-
-
+    if(1):
+        #c = [(x+1)%256 for x in c]
+        screen.fill(background)
+        #start_pos = np.matrix([[300],[300]]) - snake.get_cm()
+        start_pos = snake.get_pos() - snake.get_cm()
+        pygame.draw.circle(screen,(255,0,0,255),start_pos,2)
+        for i in range(0, snake.get_size()):
+            stop_pos = start_pos + snake.links[i].get_displacement()
+            pygame.draw.line(screen, (255,0,0,255),start_pos,stop_pos,2)
+            pygame.draw.circle(screen,(255,0,0,255),stop_pos,2)
+            start_pos = stop_pos
+        start_pos = snake.get_pos() - snake.get_cm()
+        pygame.draw.circle(screen,(255,0,0,255),start_pos,2)
+        XY = snake.big_XY()
+        XY_dot = snake.big_XY_dot()
+        for i in range(0, snake.get_size()):
+            stop_pos = np.matrix([[XY[0,i]],[XY[1,i]]]) - snake.get_cm() + snake.get_pos()
+            if(draw_der): pygame.draw.line(screen, (0,255,0,255),stop_pos,stop_pos + np.matrix([[XY_dot[0,i]],[XY_dot[1,i]]]),2)
+            pygame.draw.circle(screen,(0,0,255,255),stop_pos,2)
+            start_pos = stop_pos
+        pygame.display.flip()
+    else:
+        "ss"
+        print(snake.get_speed(), snake.velocity)
 pygame.quit()
