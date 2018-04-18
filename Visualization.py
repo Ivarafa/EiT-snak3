@@ -3,6 +3,8 @@ __author__ = 'Ivar A. Fauske'
 
 import sys, pygame, Simulation
 import numpy as np
+import time
+
 pygame.init()
 done = False
 size = width, height = 1500, 1000
@@ -10,13 +12,18 @@ screen = pygame.display.set_mode(size)
 background = [0,0,0]
 draw_der = False
 snake = Simulation.Snake(7).make()  #fix this to make proper snake
+snake.add_AI()
+snake.lastmovetime = time.time()
 while not done:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             sys.exit()
             done = True
 
-    snake.move()    #here to update snake
+    if(pygame.key.get_pressed()[pygame.K_UP]):
+        snake.move_AI()
+    else:
+        snake.move()    #here to update snake
     if(1):
         #c = [(x+1)%256 for x in c]
         screen.fill(background)

@@ -1,27 +1,58 @@
 # This Python file uses the following encoding: utf-8
+import socketserver
+import json
 
-class Connection:
 
-    #TODO: Code to establish connection
-    def __init__(self, user):
-        ""
 
-    #TODO: Need a function to listen to incoming messages
-    def recieve(self):
-        ""
+class Connection(socketserver.BaseRequestHandler):
 
-    #TODO: Function to send messages over the connection
-    def send(self, message):
-        ""
+    def handle(self):
+        """
+        This method handles the connection between a client and the server.
+        """
+        self.ip = self.client_address[0]
+        self.port = self.client_address[1]
+        self.connection = self.request
+        global messages
+        global lock
 
-    #TODO: If relevant knowledge, inform user of connection
-    def informUser(self, message):
-        ""
+        while True:
+            try:
+                received_string = self.connection.recv(4096)
+            except:
+                # handles the errno-10054, might not be the best solution.
+                # drops this BaseRequestHandler with finish() thats called after handle returns
+                return
+            try:
+                received_json = json.loads(received_string.decode('UTF-8'))
 
-    #TODO: Code to close a connection
-    def close(self):
-        ""
+                request = received_json["request"]
+                content = received_json["content"]
+                lock.acquire()
+                messages.append([request,content])
+                print(messages)
+                lock.release()
+                self.connection.send(bytes(json.dumps({"status":"added"}),'UTF-8'))
+            except ValueError:
+                return
 
-    #TODO: possible other way of doing this class (instead of informUser)
-    def getValue(self):
-        return ""
+
+
+class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+    """
+    This class is present so that each client connected will be ran as a own
+    thread. In that way, all clients will be served by the server.
+
+    No alterations are necessary
+    """
+    allow_reuse_address = True
+
+def run(mes, loc):
+    global messages, lock
+    lock = loc
+    messages = mes
+    HOST, PORT = "localhost",9998
+    server = ThreadedTCPServer((HOST,PORT),Connection)
+    server.serve_forever()
+
+"192.168.100.111"

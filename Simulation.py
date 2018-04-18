@@ -4,6 +4,7 @@ import random
 import numpy as np
 import pygame
 import time
+import AI_sim
 
 servo_slew = 2
 link_length = 40
@@ -27,7 +28,7 @@ class Link:
         self.mass = mass
         self.inertia = self.mass*self.length**2/3
         self.angle = angle
-        self.angle_dot = 0
+        self.angle_dot = angle_dot
     def get_T_matrix(self):
         T_matrix = np.matrix([[np.cos(self.angle), -np.sin(self.angle), link_length*np.cos(self.angle)], [np.sin(self.angle), np.cos(self.angle), link_length*np.sin(self.angle)], [0, 0, 1]])
         return T_matrix
@@ -37,7 +38,7 @@ class Link:
 class Snake:
     def __init__(self, size, links=[], linkmass=0.5,  pos=(0.0,300.0)):
         self.size = size
-        self.links = links
+        self.links = links[:]
         self.velocity = np.matrix([[1.0],[0.0]])
         self.timeatstart = time.time()
         self.lastmovetime = time.time()
@@ -54,12 +55,38 @@ class Snake:
             link = Link(i,link_length, link_mass)
             self.links.append(link)
         return self
+    def add_AI(self):
+        self.AI = AI_sim.NeuralSnake(self.size,1)
+        self.AI.add_training_samples(10000)
+        self.AI.normalize_training_samples()
+        #self.AI.shuffle_training_samples()
+        self.AI.train(25,self.AI.training_samples[::10],True)
     def get_size(self):
         return self.size
+    def move_AI(self):
+        t = time.time()
+        self.phi +=  (t - self.lastmovetime)*self.get_speed()/2
+        ZF = 0
+        new_angles = (self.AI.get_output(self.AI.make_input(self))-0.5)*4*np.pi
+        angles = []
+        for i in range(0,self.size):
+            angle = new_angles[i]#*2*np.pi
+            angles.append(self.turnangle + 2*servo_slew/sat(2*servo_slew/1.68, self.get_speed(),100*servo_slew/1.68)*np.cos(self.phi + i))
+            self.links[i].angle_dot = (angle - self.links[i].angle)/(t-self.lastmovetime)
+            self.links[i].angle = angle
+        print(new_angles)
+        print(angles)
+        print()
+        XY_dot = self.big_XY_dot()
+        self.velocity += (t-self.lastmovetime)*self.friction()/float(self.linkmass*self.size)
+        self.pos += self.velocity*(t-self.lastmovetime)
+        self.pos = np.matrix([[self.pos[0,0]%1500],[self.pos[1,0]]])
+        self.lastmovetime = t
     def move(self):
         t = time.time()
         self.phi +=  (t - self.lastmovetime)*self.get_speed()/2
         ZF = 0
+        '''
         if(pygame.key.get_pressed()[pygame.K_UP]):
             self.turnangle = sat(self.turnangle-(t - self.lastmovetime)*0.4, 100, self.turnangle+(t - self.lastmovetime)*0.4 )
         elif(pygame.key.get_pressed()[pygame.K_DOWN]):
@@ -67,6 +94,7 @@ class Snake:
         #else:
         #    self.turnangle = sat(self.turnangle-(t - self.lastmovetime)*0.2, 0 , self.turnangle+(t - self.lastmovetime)*0.2 )
         print(self.turnangle)
+        '''
         for i in range(0,self.size):
             angle =  self.turnangle + 2*servo_slew/sat(2*servo_slew/1.68, self.get_speed(),100*servo_slew/1.68)*np.cos(self.phi + i)
             self.links[i].angle_dot = (angle - self.links[i].angle)/(t-self.lastmovetime)
