@@ -8,8 +8,8 @@ import time
 servo_slew = 2
 link_length = 60
 link_mass = 5
-f_fric = 10.0
-c_fric = 100.0
+f_fric = 100.0
+c_fric = 1000.0
 
 def sat(low,x,high):
     if(x<low):
@@ -60,19 +60,19 @@ class Snake:
         t = time.time()
         self.phi +=  (t - self.lastmovetime)*min(self.get_speed(), 5)
         ZF = 0
-        #if(pygame.key.get_pressed()[pygame.K_UP]):
-        #    self.turnangle = sat(self.turnangle-(t - self.lastmovetime)*0.4, 100, self.turnangle+(t - self.lastmovetime)*0.4 )
-        #elif(pygame.key.get_pressed()[pygame.K_DOWN]):
-        #    self.turnangle = sat(self.turnangle-(t - self.lastmovetime)*0.4, -100, self.turnangle+(t - self.lastmovetime)*0.4 )
-        #else:
-        #    self.turnangle = sat(self.turnangle-(t - self.lastmovetime)*0.2, 0 , self.turnangle+(t - self.lastmovetime)*0.2 )
+        if(pygame.key.get_pressed()[pygame.K_UP]):
+            turninput = 1;
+        elif(pygame.key.get_pressed()[pygame.K_DOWN]):
+            turninput = -1;
+        else:
+            turninput = 0;
         for i in range(0,self.size):
-            angle =  self.turnangle + np.cos(self.phi + i)#2*servo_slew/sat(2*servo_slew/1.68, self.get_speed(),100*servo_slew/1.68)*np.cos(self.phi + 1.5*i)
+            angle =  self.turnangle + 0.5*np.cos(self.phi + 1*i) + 0.2*(i-3)*turninput#2*servo_slew/sat(2*servo_slew/1.68, self.get_speed(),100*servo_slew/1.68)*np.cos(self.phi + 1.5*i)
             self.links[i].angle_dot = (angle - self.links[i].angle)/(t-self.lastmovetime)
             self.links[i].angle = angle
         XY_dot = self.big_XY_dot()
         self.velocity += (t-self.lastmovetime)*self.friction()['ZF']/float(self.linkmass*self.size)
-        self.turnangle += self.friction()['ang_force'][0,0]/float(10000000*self.linkmass*self.size)
+        self.turnangle += self.friction()['torque']/float(100000000*self.linkmass*self.size)
         print(self.turnangle)
         self.pos += self.velocity*(t-self.lastmovetime)
         self.pos = np.matrix([[self.pos[0,0]%1500],[self.pos[1,0]]])
@@ -128,7 +128,7 @@ class Snake:
         return np.stack((np.transpose(X),np.transpose(Y)))
     def friction(self):
         ZF = np.matrix([[0.0],[0.0]])
-        ang_force = 0
+        torque = 0
         cmpos = self.pos
         linkpos = self.big_XY()
         XY_dot = self.big_XY_dot()
@@ -140,6 +140,6 @@ class Snake:
             #Coloumb friction
             fric_force = -np.matrix([[cos*f_fric*np.sign(f_der) - sin*c_fric*np.sign(c_der)],[ sin*f_fric*np.sign(f_der) + cos*c_fric*np.sign(c_der)]])
             ZF += fric_force
-            ang_force += fric_force.T*(cmpos-linkpos[:,i])
-        return {'ZF':ZF,'ang_force': ang_force}
+            torque += ((linkpos[:,i]-cmpos).T*(fric_force))[0,0]
+        return {'ZF':ZF,'torque': torque}
 

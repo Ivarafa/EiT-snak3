@@ -5,7 +5,7 @@ import sys, pygame, Simulation
 import numpy as np
 pygame.init()
 done = False
-size = width, height = 1500, 1000
+size = width, height = 1800, 1000
 screen = pygame.display.set_mode(size)
 background = [0,0,0]
 draw_der = False
