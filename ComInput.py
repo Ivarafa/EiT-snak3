@@ -51,7 +51,7 @@ def run(mes, loc):
     global messages, lock
     lock = loc
     messages = mes
-    HOST, PORT = "localhost",9998
+    HOST, PORT = "192.168.111.12",45006
     server = ThreadedTCPServer((HOST,PORT),Connection)
     server.serve_forever()
 

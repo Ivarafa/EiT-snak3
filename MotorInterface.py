@@ -1,43 +1,67 @@
 # This Python file uses the following encoding: utf-8
 
-import ASUS.GPIO as GPIO
+from __future__ import division
+import numpy as np
 
-#Constants
-#TODO: Fill inn the pin numbers used
-pins = []        #write pins used here in order back to front of the snake
+
+# Import the PCA9685 module.
+import Adafruit_PCA9685
+
+
+# Uncomment to enable debug output.
+#import logging
+#logging.basicConfig(level=logging.DEBUG)
+
+# Initialise the PCA9685 using the default address (0x40).
+
+
+# Alternatively specify a different address and/or bus:
+#pwm = Adafruit_PCA9685.PCA9685(address=0x41, busnum=2)
+
+
+# Configure min and max servo pulse lengths
 FREQUENCY = 50
-INIT_ANGLE = 7.5
+NUM_SERVOS = 6
+servo_min = 205  # Min pulse length out of 4096
+servo_max = 410  # Max pulse length out of 4096
+# Helper function to make setting a servo pulse width simpler.
+# Set frequency to 60hz, good for servos.
 
 
-GPIO.setmode(GPIO.ASUS)
-GPIO.setwarnings(False)
-servos = []
+class MotorInterface:
+    def __init__(self, freq = FREQUENCY, num_servos = NUM_SERVOS):
+        self.freq = freq
+        self.num_servos = num_servos
+        print("frequency set to", self.freq)
+        self.pwm = Adafruit_PCA9685.PCA9685()
+        self.pwm.set_pwm_freq(self.freq)
 
+    def setAbsAngles(self, angles):
+        relAngles = [0]*self.num_servos
+        relAngles[0] = angles[0]
+        for i in range(1, self.num_servos):
+            relAngles[i] = angles[i] - angles[i-1]
+        processedAngles = self.convertAngles(relAngles)
+        print(processedAngles)
+        for i in range(self.num_servos):
+            if (processedAngles[i] > servo_min and processedAngles[i] < servo_max):
+                self.pwm.set_pwm(i, 0, processedAngles[i])
+            else:
+                print("motor value error")
 
-def connect(num):
-    for i in range(num):
-        myservo = getNextPin()
-        GPIO.setup(myservo,GPIO.OUT)
-        pwm = GPIO.PWM(myservo, FREQUENCY)
-        pwm.start(INIT_ANGLE)
-        servos.append(pwm)
+    def convertAngles(self, angles):
+        return [self.convert(ang) for ang in angles]
 
-def shutDown():
-    GPIO.cleanup()
+    #TODO: This method may need updating based on output from main loop
+    def convert(self, angle):
+        return int(102/np.pi*2*angle + 307.5)
 
-#This thing may be super silly
-def getNextPin():
-    global pins
-    return pins.pop()
-
-def setServos(angles):
-    processedAngles = convertAngles(angles)
-    for i in range(len(servos)):
-        servos[i].ChangeDutyCycle(processedAngles[i])
-
-def convertAngles(angles):
-    return [convert(ang) for ang in angles]
-
-#TODO: This method may need updating based on output from main loop
-def convert(angle):
-    return angle
+    def reset(self):
+        """Sends a software reset (SWRST) command to all servo drivers on the bus."""
+        # Setup I2C interface for device 0x00 to talk to all of them.
+        import Adafruit_GPIO.I2C as I2C
+        i2c = I2C
+        device = i2c.get_i2c_device(0x00)
+        device.writeRaw8(0x06)  # SWRST
+        self.pwm = Adafruit_PCA9685.PCA9685()
+        self.pwm.set_pwm_freq(self.freq)
