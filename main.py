@@ -39,9 +39,23 @@ class RobotProgram:
         if (key == "start" and self.state == "stop"):
             self.state = "init"
         elif (key == "straight" and self.state == "stop"):
-                self.state = "straight"
+            self.state = "straight"
         elif key == "stop":
             self.state = "stop"
+        elif key == "freq":
+            val = int(val)
+            if val > 0.001 and val < 5:
+                global ctrl_freq
+                ctrl_freq = val
+        elif key == "amplitude":
+            val = int(val)
+            if val > 0.001 and val < np.pi/2:
+                global ctrl_amplitude
+                ctrl_amplitude = val
+        elif key == "phase":
+            val = int(val)
+            global ctrl_phase
+            ctrl_phase = val
         elif key == "shutdown":
             self.shutDown()
         elif key == "reset":
@@ -70,7 +84,7 @@ class RobotProgram:
             try:
                 lock.acquire()
                 for i in range(len(messages)):
-                    print("Handling coms message")
+                    #print("Handling coms message")
                     self.handle_message(messages.pop(0))
                 lock.release()
                 if self.state == "stop":

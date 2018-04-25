@@ -30,7 +30,7 @@ class Connection(socketserver.BaseRequestHandler):
                 content = received_json["content"]
                 lock.acquire()
                 messages.append([request,content])
-                print(messages)
+                #print(messages)
                 lock.release()
                 self.connection.send(bytes(json.dumps({"status":"added"}),'UTF-8'))
             except ValueError:

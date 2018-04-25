@@ -14,7 +14,7 @@ class Client:
         '''
         This method is run when creating a new Client object
         '''
-        self.valid_reqs = ['login', 'logout', 'msg', 'names', 'help']
+        self.special_reqs = ['freq','amplitude','phase']
         self.host = host
         self.server_port = server_port
         self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -56,7 +56,14 @@ class Client:
     def send_message(self):
         while 1:
             req = input("Command: ")
-            message_to_send = {'request': req, 'content': None}
+            if req in self.special_reqs:
+                content = input("Value: ")
+            elif req.lower() == 'help':
+                print("Special control requests:",self.special_reqs)
+                continue
+            else:
+                content = None
+            message_to_send = {'request': req, 'content': content}
             print(message_to_send)
             self.connection.send(bytes(json.dumps(message_to_send), 'UTF-8'))
             # Let the console have time to output response from server, find better solution?
