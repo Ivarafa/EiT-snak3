@@ -8,7 +8,7 @@ import sys
 import threading
 import time
 
-ctrl_freq = 0.5
+ctrl_freq = 1
 ctrl_amplitude = np.pi/2
 ctrl_phase = -1
 
@@ -39,7 +39,7 @@ class RobotProgram:
         if (key == "start" and self.state == "stop"):
             self.state = "init"
         elif (key == "straight" and self.state == "stop"):
-                state = "straight"
+                self.state = "straight"
         elif key == "stop":
             self.state = "stop"
         elif key == "shutdown":
@@ -65,7 +65,7 @@ class RobotProgram:
     def run(self, messages, lock):
         self.program = True
         self.reset()
-        
+        j = 0
         while self.program:
             try:
                 lock.acquire()
@@ -81,14 +81,17 @@ class RobotProgram:
                     self.state = "stop"
                 if self.state == "init":
                     angles = [0]*self.num_of_links
-                    for j in range(50):
+                    if(j < 50):
                         for i in range(self.num_of_links-1):
                             angles[i] = j/50.0*ctrl_amplitude*np.cos(ctrl_phase*i)
                         time.sleep(0.1)
                         self.motors.setAbsAngles(angles)
-                    time.sleep(1)
-                    self.decision_maker.reset(time.time())
-                    self.state = "running"
+                        j += 1
+                    else:
+                        j = 0
+                        time.sleep(1)
+                        self.decision_maker.reset(time.time())
+                        self.state = "running"
                 if self.state == "running":
                     for i in range(len(self.sensors)):
                         self.knowledge['sen{0}'.format(i)] = self.sensors[i].getValue()
